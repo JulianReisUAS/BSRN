@@ -24,7 +24,7 @@ int main() {
     char buffer[MAX_MESSAGE_SIZE];
     struct sockaddr_in serv_addr, cli_addr;
 
-    // Eingabe der Übertragungsart, des Dienstnamens und der Datei-Pfad
+    // Eingabe der Übertragungsart, des Dienstnamens und des Dateipfads
     char transport[10];
     char service_name[100];
     char filepath[100];
@@ -38,6 +38,7 @@ int main() {
         printf("Geben Sie den gemeinsamen Dienstnamen ein: ");
         scanf("%s", service_name);
 
+        // Überprüfen und Abrufen des Dienstes anhand des Dienstnamens und der Übertragungsart
         service = getservbyname(service_name, strcmp(transport, "TCP") == 0 ? "tcp" : "udp");
         if (service != NULL)
             break;
@@ -59,9 +60,11 @@ int main() {
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
         error("Fehler beim Binden");
 
-    // Das "julian" muss durch den eigenen Benutzernamen ausgetauscht werden
+    // Setzen des Dateipfads für den Mitschnitt
+    // Hier musst du deinen eigenen Benutzernamen anstelle von "julian" verwenden
     snprintf(filepath, sizeof(filepath), "/home/julian/Desktop/mitschnitt.pcap");
 
+    // Erstellen des Befehls für das Mitschnitt-Tool "tcpdump" und Ausführen des Befehls
     char command[256];
     snprintf(command, sizeof(command), "%s -i lo %s port %d -w %s &", 
         "tcpdump",
@@ -73,6 +76,9 @@ int main() {
 
     int isConnectionClosed = 0;
     if (strcmp(transport, "TCP") == 0) {
+        // Wenn die Übertragungsart TCP ist
+
+        // Auf eingehende Verbindungen warten
         listen(sockfd, 5);
         clilen = sizeof(cli_addr);
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
@@ -80,6 +86,7 @@ int main() {
             error("Fehler beim Akzeptieren der Verbindung");
 
         while (!isConnectionClosed) {
+            // Nachricht vom Client lesen
             memset(buffer, 0, MAX_MESSAGE_SIZE);
             n = read(newsockfd, buffer, MAX_MESSAGE_SIZE - 1);
             if (n < 0)
@@ -90,6 +97,7 @@ int main() {
             if (strncmp(buffer, "bye", 3) == 0)
                 isConnectionClosed = 1;
             else {
+                // Antwort an den Client senden
                 printf("Server: ");
                 memset(buffer, 0, MAX_MESSAGE_SIZE);
                 fgets(buffer, MAX_MESSAGE_SIZE - 1, stdin);
@@ -101,7 +109,10 @@ int main() {
 
         close(newsockfd);
     } else if (strcmp(transport, "UDP") == 0) {
+        // Wenn die Übertragungsart UDP ist
+
         while (!isConnectionClosed) {
+            // Nachricht vom Client empfangen
             memset(buffer, 0, MAX_MESSAGE_SIZE);
             addrlen = sizeof(cli_addr);
             n = recvfrom(sockfd, buffer, MAX_MESSAGE_SIZE - 1, 0, (struct sockaddr *) &cli_addr, &addrlen);
@@ -113,6 +124,7 @@ int main() {
             if (strncmp(buffer, "bye", 3) == 0)
                 isConnectionClosed = 1;
             else {
+                // Antwort an den Client senden
                 printf("Server: ");
                 memset(buffer, 0, MAX_MESSAGE_SIZE);
                 fgets(buffer, MAX_MESSAGE_SIZE - 1, stdin);
@@ -123,6 +135,7 @@ int main() {
         }
     }
 
+    // Prozess des Mitschnitt-Tools beenden
     snprintf(command, sizeof(command), "pkill tcpdump");
     system(command);
 
