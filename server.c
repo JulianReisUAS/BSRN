@@ -7,18 +7,22 @@
 #include <pcap.h>
 #include <sys/socket.h>
 
+// Maximale Message größe
 #define MAX_MESSAGE_SIZE 1024
 
+// Ruft Fehlermeldung auf und beendet Programm
 void error(const char *msg) {
     perror(msg);
     exit(1);
 }
 
-void packetHandler(u_char *userData, const struct pcap_pkthdr *pkthdr, const u_char *packetData) {
-    printf("Packet captured\n");
-}
 
 int main() {
+    //Deklaration von Variablen
+    /*
+    sockfd = Socket für Server-Socket
+    newsockfd = Socket für angenommenen Client-Socket
+    */
     int sockfd, newsockfd, n;
     socklen_t clilen, addrlen;
     char buffer[MAX_MESSAGE_SIZE];
@@ -32,13 +36,16 @@ int main() {
     // Serviceinformationen abrufen
     struct servent *service = NULL;
     while (1) {
+        // Eingabe Übertragungsart
         printf("Welche Übertragungsart möchten Sie verwenden? (TCP/UDP): ");
         scanf("%s", transport);
 
+        //Einge Dienstnamen (Über welchen Port wird kommuniziert)
         printf("Geben Sie den gemeinsamen Dienstnamen ein: ");
         scanf("%s", service_name);
 
         // Überprüfen und Abrufen des Dienstes anhand des Dienstnamens und der Übertragungsart
+        // Durchsucht /etc/services nach Dienstnamen
         service = getservbyname(service_name, strcmp(transport, "TCP") == 0 ? "tcp" : "udp");
         if (service != NULL)
             break;
@@ -47,6 +54,7 @@ int main() {
     }
 
     // Socket erstellen
+    // Funktion "socket" erstellt neuen Socket abhängig von gewählter Übertragungsart
     sockfd = socket(AF_INET, strcmp(transport, "TCP") == 0 ? SOCK_STREAM : SOCK_DGRAM, 0);
     if (sockfd < 0)
         error("Fehler beim Öffnen des Sockets");
@@ -72,6 +80,7 @@ int main() {
         ntohs(serv_addr.sin_port),
         filepath
     );
+    // Ausführen des Mitschnitts im Hintergrund
     system(command);
 
     int isConnectionClosed = 0;
